@@ -1,0 +1,57 @@
+﻿<div class="top-row ps-2 navbar-dark d-flex align-items-center">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href=""><i class="bi bi-box-seam box-encuentra-icon"></i>Encuentra</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item mx-3">
+            <NavLink class="nav-link px-3" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-fill" aria-hidden="true"></span> Inicio
+            </NavLink>
+        </div>
+        <div class="nav-item mx-3">
+            <NavLink class="nav-link px-3" href="editUserConfig">
+                <span class="bi bi-pc-display" aria-hidden="true"></span> Equipo
+            </NavLink>
+        </div>
+        <div class="nav-item mx-3 dropdown">
+            <NavLink class="nav-link px-3" href="listPrinterConfig" @onclick="()=>expandSubMenuPrinters = !expandSubMenuPrinters">
+                <i class="bi bi-printer-fill"></i> Impresoras
+            </NavLink>
+@*             @if (expandSubMenuPrinters)
+            {
+                <ul>
+                    <li>
+                        <NavLink class="nav-link px-3" href="addPrinter">
+                            <span class="bi bi-plus-square" aria-hidden="true"></span> Nueva impresora
+                        </NavLink>
+                    </li>
+                </ul>
+            } *@
+        </div>
+        <div class="nav-item mx-3 dropdown">
+            <NavLink class="nav-link px-3" href="listLabelProfile" @onclick="()=>expandSubMenuLabelProfiles = !expandSubMenuLabelProfiles">
+                <span class="bi bi-file-text-fill" aria-hidden="true"></span> Etiquetas
+            </NavLink>
+@*             @if (expandSubMenuLabelProfiles)
+            {
+                <ul>
+                    <li>
+                        <NavLink class="nav-link px-3" href="addLabelProfile">
+                            <span class="bi bi-plus-square" aria-hidden="true"></span> Nuevo perfil
+                        </NavLink>
+                    </li>
+                </ul>
+            } *@
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool expandSubMenuPrinters = false;
+    private bool expandSubMenuLabelProfiles = false;
+}

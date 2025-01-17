@@ -1,0 +1,30 @@
+﻿@page "/listPrinterConfig"
+@using IPrint.Components.Tables
+@using IPrint.Models
+@using IPrint.Services
+@inject NavigationManager NavigationManager
+
+<div class="col">
+    <h3>Impresoras</h3>
+    <PrinterConfigTable PrinterConfigs="PrinterConfigs"></PrinterConfigTable>
+    <div class="add-btn" @onclick="() => redirectToAddPrinterConfig()">
+        <i class="bi bi bi-plus cursor-pointer" type="button" title="Añadir"></i>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private PrinterConfigService PrinterConfigService { get; set; }
+
+    private List<PrinterConfig> PrinterConfigs { get; set; }
+
+    protected override void OnInitialized()
+    {
+        PrinterConfigs = PrinterConfigService.GetAll();
+    }
+
+    private void redirectToAddPrinterConfig()
+    {
+        NavigationManager.NavigateTo("/addPrinterConfig");
+    }
+}

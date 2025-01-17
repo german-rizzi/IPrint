@@ -1,0 +1,62 @@
+﻿@using IPrint.Components.Pages.LabelProfiles
+@using IPrint.Models
+@using IPrint.Services
+@inject NavigationManager NavigationManager
+
+<ul class="list-group mt-3">
+    @if (LabelProfiles == null || LabelProfiles.Count == 0)
+    {
+        <li class="list-group-item d-flex align-items-center bg-light">
+            <i class="bi bi-info-circle-fill me-2"></i> No tienes perfiles de impresión configurados.
+        </li>
+    }
+    else
+    {
+        @foreach (LabelProfile labelProfile in LabelProfiles)
+        {
+            <li class="list-group-item d-flex align-items-center">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    @labelProfile.Name
+                    @if (labelProfile.Configuration != null)
+                    {
+                        <div>
+                            <span class="badge bg-primary rounded-pill">@labelProfile.Configuration.Width x @(labelProfile.Configuration.Height == 0 ? "auto" : labelProfile.Configuration.Height.ToString())</span>
+
+                            @if (labelProfile.Configuration.Portrait)
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill ms-1">Rotar</span>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="dropdown">
+                    <i class="bi bi-three-dots-vertical ms-3 cursor-pointer dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones"></i>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" @onclick="() => Edit(labelProfile)">Editar</a></li>
+                        <li><a class="dropdown-item" @onclick="() => Delete(labelProfile)">Eliminar</a></li>
+                    </ul>
+                </div>
+            </li>
+        }
+    }
+</ul>
+
+@code {
+    [Inject]
+    private LabelProfileService LabelProfileService { get; set; }
+
+    [Parameter]
+    public List<LabelProfile> LabelProfiles { get; set; }
+
+    private void Delete(LabelProfile labelProfile)
+    {
+        LabelProfileService.Delete(labelProfile.Id);
+        LabelProfiles = LabelProfiles.Where(e => !e.Equals(labelProfile)).ToList();
+    }
+
+    private void Edit(LabelProfile labelProfile)
+    {
+        EditLabelProfile.LabelProfile = labelProfile;
+        NavigationManager.NavigateTo("/editLabelProfile");
+    }
+}

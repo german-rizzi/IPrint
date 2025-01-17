@@ -1,0 +1,163 @@
+﻿@inject NavigationManager NavigationManager
+@using IPrint.Components.Commons
+@using IPrint.Models
+@using IPrint.Services
+@using IPrint.Helpers;
+
+<form>
+    <div class="form-group">
+        <label for="profileName">Nombre de perfil</label>
+        <input type="text" class="form-control" id="profileName" maxlength="128" @bind="LabelProfile.Name" />
+    </div>
+    <div class="form-group mt-3">
+        <label for="printer">Impresora</label>
+        <MultiSelect Options="PrinterConfigs" StringSelector="(item) => item.Name" CanFilter="true" SelectedOptions="SelectedPrinterConfigs" SelectedOptionsChanged="EventCallback.Factory.Create<List<PrinterConfig>>(this, OnSelectPrinterProfilesChange)" />
+    </div>
+    <div id="paper-condfig" class="accordion mt-3">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button bg-light" type="button">
+                    Configuracion de papel
+                </button>
+            </h2>
+            <div class="accordion-collapse collapse show">
+                <div class="accordion-body row">
+                    <div class="form-group col-12 col-md-4">
+                        <label for="width">Ancho</label>
+                        <input type="number" class="form-control" id="width" max="99" min="1" @bind="LabelProfile.Configuration.Width" />
+                    </div>
+                    <div class="form-group col-12 col-md-4">
+                        <label for="height">Alto</label>
+                        <input type="number" class="form-control" id="height" max="99" min="1" @bind="LabelProfile.Configuration.Height" />
+                    </div>
+                    <div class="form-group col-12 col-md-4">
+                        <label for="portrait">Rotar</label>
+                        <select class="form-control" id="portrait" required @onchange="(e) => OnPortraitChange(e.Value)">
+                            <option value="true">Si</option>
+                            <option value="false" selected>No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="accordion mt-3" id="accordionConditions">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConditions" aria-expanded="true" aria-controls="collapseConditions">
+                    Condicionales
+                </button>
+            </h2>
+            <div id="collapseConditions" class="accordion-collapse collapse @(ShowConditionals ? "show" : "hide")" data-bs-parent="#accordionConditions">
+                <div class="accordion-body">
+                    @foreach (var row in LabelProfile.Conditionals)
+                    {
+                        <div class="row">
+                            <div class="row mt-2 col-11">
+                                <div class="form-group col-12 col-md-4">
+                                    <label for="key">Propiedad</label>
+                                    <select class="form-control" id="key" required @bind="row.Key">
+                                        <option value="" disabled selected>Seleccione una opción</option>
+                                        <option value="url">Url</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-12 col-md-4">
+                                    <label for="operator">Alto</label>
+                                    <select class="form-control" id="operator" required @bind="row.Operator">
+                                        <option value="eq">Igual</option>
+                                        <option value="ne">No igual</option>
+                                        <option value="lt">Menor</option>
+                                        <option value="le">Menor o igual</option>
+                                        <option value="gt">Mayor</option>
+                                        <option value="ge">Mayor o igual</option>
+                                        <option value="cn">Contiene</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-12 col-md-4">
+                                    <label for="value">Valor</label>
+                                    <input type="text" class="form-control" id="value" required @bind="row.Value" />
+                                </div>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <i class="bi bi-x d-block mt-4" title="Eliminar" @onclick="() => RemoveConditional(row)"></i>
+                            </div>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-end mt-5">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="AddNewConditional">Nuevo condicional</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end mt-5">
+        <button type="button" class="btn btn-primary" disabled="@IsNotValidForm" @onclick="async () => await OnSubmit.InvokeAsync(LabelProfile)">Guardar</button>
+    </div>
+</form>
+
+@code {
+    [Inject]
+    private PrinterConfigService PrinterConfigService { get; set; }
+
+    [Inject]
+    private LabelProfileService LabelProfileService { get; set; }
+
+    private List<PrinterConfig> PrinterConfigs { get; set; }
+
+    private List<PrinterConfig> SelectedPrinterConfigs { get; set; } = new();
+
+    [Parameter]
+    public LabelProfile? LabelProfile { get; set; }
+
+    [Parameter]
+    public EventCallback<LabelProfile> OnSubmit { get; set; }
+
+    private bool IsNotValidForm => LabelProfile == null || String.IsNullOrEmpty(LabelProfile.Name) || LabelProfile.Configuration == null || LabelProfile.Configuration.Width< 1 || (LabelProfile.Conditionals?.Any(e => (!String.IsNullOrEmpty(e.Key) && String.IsNullOrEmpty(e.Value)) || (String.IsNullOrEmpty(e.Key) && !String.IsNullOrEmpty(e.Value))) ?? false);
+
+    private bool ShowConditionals = false;
+
+    protected override void OnInitialized()
+    {
+        LabelProfile ??= new()
+            {
+                Configuration = new(),
+                Conditionals = new() { new() },
+            };
+
+        PrinterConfigs = PrinterConfigService.GetAll();
+        ShowConditionals = LabelProfile.Conditionals?.Any(e => !e.Value.IsNullOrEmpty()) ?? false;
+
+        if (!LabelProfile.Id.IsNullOrEmpty())
+        {
+            SelectedPrinterConfigs = PrinterConfigs.Where(e => e.LabelProfileIds.Contains(LabelProfile.Id)).ToList();
+        }
+    }
+
+    private void AddNewConditional()
+    {
+        LabelProfile.Conditionals.Add(new());
+    }
+
+    private void RemoveConditional(LabelProfileConditional conditional)
+    {
+        LabelProfile.Conditionals.Remove(conditional);
+
+        if (LabelProfile.Conditionals.Count == 0)
+        {
+            LabelProfile.Conditionals.Add(new());
+        }
+    }
+
+    private void OnPortraitChange(object args)
+    {
+        if (LabelProfile.Configuration != null)
+        {
+            LabelProfile.Configuration.Portrait = (string)args == "true";
+        }
+    }
+
+    private void OnSelectPrinterProfilesChange(List<PrinterConfig> printersConfigs)
+    {
+        LabelProfile.PrinterIds = printersConfigs.Select(e => e.Id).ToList();
+    }
+}

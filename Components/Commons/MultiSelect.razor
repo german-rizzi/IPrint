@@ -1,0 +1,104 @@
+﻿@using Microsoft.JSInterop
+@using System.Diagnostics
+@inject IJSRuntime JsRuntime
+@typeparam TItem
+
+<div class="btn-group w-100 simple-dropdown @(Class ?? "")" style="@(Style ?? "")">
+    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-truncate text-start" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+        @if (SelectedOptions.Count == 0)
+        {
+            @DefaultText
+        }
+        else if (SelectedOptionsRenderer == null)
+        {
+            @string.Join(", ", SelectedOptions.Select(StringSelector))
+        }
+        else
+        {
+            @SelectedOptionsRenderer(SelectedOptions)
+        }
+    </button>
+    <div class="dropdown-menu w-100" aria-labelledby="dropdownMenuButton">
+        @if (CanFilter)
+        {
+            <div class="filter-container">
+                <div>
+                    <input type="text" class="form-control" placeholder="Busqueda..." @bind="_filterText" @bind:event="oninput" />
+                </div>
+            </div>
+        }
+
+        @if (Virtualize)
+        {
+            <Virtualize Items="FilteredOptions().ToList()" Context="option">
+                @RenderItem(option)
+            </Virtualize>
+        }
+        else
+        {
+            foreach (var option in FilteredOptions())
+            {
+                @RenderItem(option)
+            }
+        }
+    </div>
+</div>
+
+
+@code {
+    private string _filterText = "";
+
+    private bool IsOptionSelected(TItem option)
+    {
+        return SelectedOptions.Contains(option);
+    }
+
+    private async Task ToggleOption(TItem option)
+    {
+        if (SelectedOptions.Contains(option))
+        {
+            SelectedOptions.Remove(option);
+        }
+        else
+        {
+            if (!IsMultiSelect)
+            {
+                SelectedOptions.Clear();
+            }
+
+            SelectedOptions.Add(option);
+        }
+
+        await SelectedOptionsChanged.InvokeAsync(SelectedOptions);
+    }
+
+    /// <summary>
+    /// The options to display in the dropdown.
+    /// Does not filter if <see cref="CanFilter"/> is false.
+    /// </summary>
+    private IEnumerable<TItem> FilteredOptions()
+    {
+        foreach (var option in Options)
+        {
+            if (!CanFilter)
+            {
+                yield return option;
+                continue;
+            }
+
+            var predicate = FilterPredicate ?? DefaultFilterPredicate;
+
+            if (predicate(option, _filterText))
+            {
+                yield return option;
+            }
+        }
+    }
+
+    private RenderFragment<TItem> RenderItem => item =>
+    @<div class="dropdown-item" @onclick="() => ToggleOption(item)">
+        <label @onclick:stopPropagation="true">
+            <input type="checkbox" checked="@IsOptionSelected(item)" @onchange="() => ToggleOption(item)" /> @StringSelector(item)
+        </label>
+    </div>;
+}

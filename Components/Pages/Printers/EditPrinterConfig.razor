@@ -1,0 +1,36 @@
+﻿@page "/editPrinterConfig"
+@inject IJSRuntime JSRuntime
+@using System.Drawing.Printing
+@using Blazored.Toast.Services
+@using IPrint.Components.Commons
+@using IPrint.Components.Forms
+@using IPrint.Exceptions
+@using IPrint.Models
+@using static System.Drawing.Printing.PrinterSettings
+@using IPrint.Services
+
+<h3>Impresora</h3>
+<PrinterConfigForm PrinterConfig="PrinterConfig" OnSubmit="(printerConfig) => Save(printerConfig)"></PrinterConfigForm>
+
+@code {
+    [Inject]
+    private PrinterConfigService PrinterConfigService { get; set; }
+
+    [Inject]
+    private AlertService AlertService { get; set; }
+
+    public static PrinterConfig PrinterConfig { get; set; }
+
+    private async void Save(PrinterConfig printerConfig)
+    {
+        try
+        {
+            PrinterConfigService.Update(printerConfig);
+            await JSRuntime.InvokeVoidAsync("history.back");
+        }
+        catch (AlertException ex)
+        {
+            AlertService.ShowAlert("Error", ex.Message);
+        }
+    }
+}

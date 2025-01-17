@@ -1,0 +1,54 @@
+﻿@page "/editLabelProfile"
+@inject IJSRuntime JSRuntime
+@using System.Drawing.Printing
+@using Blazored.Toast.Services
+@using IPrint.Components.Commons
+@using IPrint.Components.Forms
+@using IPrint.Helpers
+@using IPrint.Models
+@using static System.Drawing.Printing.PrinterSettings
+@using IPrint.Services
+
+<h3>Perfil de impresión</h3>
+<LabelProfileForm LabelProfile="LabelProfile" OnSubmit="() => Save()"></LabelProfileForm>
+
+@code {
+    [Inject]
+    private LabelProfileService LabelProfileService { get; set; }
+
+    public static LabelProfile LabelProfile { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (LabelProfile is null)
+        {
+            JSRuntime.InvokeVoidAsync("history.back");
+        }
+
+        if (LabelProfile.Conditionals.IsNullOrEmpty())
+        {
+            LabelProfile.Conditionals ??= new();
+            LabelProfile.Conditionals.Add(new());
+        }
+    }
+
+    private async void Save()
+    {
+        if (LabelProfile.Conditionals != null)
+        {
+            for (int i = 0; i < LabelProfile.Conditionals.Count; i++)
+            {
+                var conditional = LabelProfile.Conditionals.ElementAt(i);
+
+                if (String.IsNullOrEmpty(conditional.Key) && String.IsNullOrEmpty(conditional.Value))
+                {
+                    LabelProfile.Conditionals.Remove(conditional);
+                    i--;
+                }
+            }
+        }
+
+        LabelProfileService.Update(LabelProfile);
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}

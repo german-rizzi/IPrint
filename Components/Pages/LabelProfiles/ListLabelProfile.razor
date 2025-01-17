@@ -1,0 +1,30 @@
+﻿@page "/listLabelProfile"
+@using IPrint.Components.Tables
+@using IPrint.Models
+@using IPrint.Services
+@inject NavigationManager NavigationManager
+
+<div class="col">
+    <h3>Perfiles de impresión</h3>
+    <LabelProfileTable LabelProfiles="LabelProfiles"></LabelProfileTable>
+    <div class="add-btn" @onclick="() => redirectToAddLabelProfile()">
+        <i class="bi bi bi-plus cursor-pointer" type="button" title="Añadir"></i>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private LabelProfileService LabelProfileService { get; set; }
+
+    private List<LabelProfile> LabelProfiles { get; set; }
+
+    protected override void OnInitialized()
+    {
+        LabelProfiles = LabelProfileService.GetAll();
+    }
+
+    private void redirectToAddLabelProfile()
+    {
+        NavigationManager.NavigateTo("/addLabelProfile");
+    }
+}

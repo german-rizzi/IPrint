@@ -1,0 +1,35 @@
+﻿@page "/addPrinterConfig"
+@inject NavigationManager NavigationManager
+@using System.Drawing.Printing
+@using Blazored.Toast.Services
+@using IPrint.Components.Commons
+@using IPrint.Components.Forms
+@using IPrint.Exceptions
+@using IPrint.Models
+@using static System.Drawing.Printing.PrinterSettings
+@using IPrint.Services
+
+<h3>Nueva impresora</h3>
+<PrinterConfigForm OnSubmit="(printerConfig) => Save(printerConfig)"></PrinterConfigForm>
+
+@code {
+    [Inject]
+    private PrinterConfigService PrinterConfigService { get; set; }
+
+
+    [Inject]
+    private AlertService AlertService { get; set; }
+
+    private void Save(PrinterConfig printerConfig)
+    {
+        try
+        {
+            PrinterConfigService.Add(printerConfig);
+            NavigationManager.NavigateTo("/");
+        }
+        catch (AlertException ex)
+        {
+            AlertService.ShowAlert("Error", ex.Message);
+        }
+    }
+}

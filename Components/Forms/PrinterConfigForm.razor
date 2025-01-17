@@ -1,0 +1,73 @@
+﻿@inject NavigationManager NavigationManager
+@using System.Drawing.Printing
+@using Blazored.Toast.Services
+@using IPrint.Components.Commons
+@using IPrint.Exceptions
+@using IPrint.Models
+@using static System.Drawing.Printing.PrinterSettings
+@using IPrint.Services
+
+<form>
+    <div class="form-group">
+        <label for="printer">Impresora</label>
+        <select class="form-control" id="printer" @bind="PrinterConfig.Name" required>
+            <option selected disabled>Seleccione una opcion</option>
+            @foreach (string printer in PrinterSettings.InstalledPrinters)
+            {
+                <option value="@printer">@printer</option>
+            }
+        </select>
+    </div>
+    <div class="form-group mt-3">
+        <label for="printerType">Tipo de papel</label>
+        <select class="form-control" id="printerType" @bind="PrinterConfig.Type" required>
+            @foreach (string printerType in Enum.GetNames(typeof(PrinterTypes)))
+            {
+                <option value="@printerType">@printerType</option>
+            }
+        </select>
+    </div>
+    <div class="form-group mt-3">
+        <label for="printer">Pefiles de impresión</label>
+        <MultiSelect Options="LabelProfiles" SelectedOptions="SelectedLabelProfiles" StringSelector="(item) => item.Name" CanFilter="true" SelectedOptionsChanged="EventCallback.Factory.Create<List<LabelProfile>>(this, OnChangeSelectedLabelProfiles)" />
+    </div>
+</form>
+<div class="d-flex justify-content-end mt-5">
+    <button type="button" class="btn btn-primary" disabled="@IsNotValidForm" @onclick="async () => await OnSubmit.InvokeAsync(PrinterConfig)">Guardar</button>
+</div>
+
+@code {
+    [Inject]
+    private PrinterConfigService PrinterConfigService { get; set; }
+
+    [Inject]
+    private LabelProfileService LabelProfileService { get; set; }
+
+    private List<LabelProfile> LabelProfiles { get; set; }
+
+    private List<LabelProfile> SelectedLabelProfiles { get; set; }
+
+    [Parameter]
+    public PrinterConfig PrinterConfig { get; set; }
+
+    [Parameter]
+    public EventCallback<PrinterConfig> OnSubmit { get; set; }
+
+    protected override void OnInitialized()
+    {
+        PrinterConfig ??= new()
+            {
+                Type = PrinterTypes.Ticket
+            };
+
+        LabelProfiles = LabelProfileService.GetAll();
+        SelectedLabelProfiles = LabelProfiles.Where(e => PrinterConfig.LabelProfileIds?.Contains(e.Id) ?? false).ToList();
+    }
+
+    private void OnChangeSelectedLabelProfiles(List<LabelProfile> labelProfiles)
+    {
+        PrinterConfig.LabelProfileIds = labelProfiles.Select(e => e.Id).ToList();
+    }
+
+    private bool IsNotValidForm => string.IsNullOrEmpty(PrinterConfig.Name);
+}

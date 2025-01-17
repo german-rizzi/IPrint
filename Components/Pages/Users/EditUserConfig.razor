@@ -1,0 +1,27 @@
+﻿@page "/editUserConfig"
+@using Blazored.Toast.Services
+@using IPrint.Components.Forms
+@using IPrint.Models
+@using IPrint.Services
+@inject NavigationManager NavigationManager
+
+<h3>Configuración de equipo</h3>
+<UserConfigForm UserConfig="UserConfig" OnSubmit="(userConfig) => Save(userConfig)"></UserConfigForm>
+
+@code {
+    [Inject]
+    private UserConfigService UserConfigService { get; set; }
+
+    private UserConfig UserConfig { get; set; }
+
+    protected override void OnInitialized()
+    {
+        UserConfig = UserConfigService.Get() ?? new();
+    }
+
+    private void Save(UserConfig userConfig)
+    {
+        UserConfigService.Add(userConfig);
+        NavigationManager.NavigateTo("/");
+    }
+}

@@ -1,0 +1,49 @@
+﻿@page "/addLabelProfile"
+@inject NavigationManager NavigationManager
+@using System.Drawing.Printing
+@using Blazored.Toast.Services
+@using IPrint.Components.Commons
+@using IPrint.Components.Forms
+@using IPrint.Models
+@using static System.Drawing.Printing.PrinterSettings
+@using IPrint.Services
+
+<h3>Nuevo perfil de impresión</h3>
+<LabelProfileForm LabelProfile="LabelProfile" OnSubmit="() => Save()"></LabelProfileForm>
+
+@code {
+    [Inject]
+    private LabelProfileService LabelProfileService { get; set; }
+
+    private LabelProfile LabelProfile { get; set; }
+
+    protected override void OnInitialized()
+    {
+        LabelProfile = new()
+        {
+            PrinterIds = new(),
+            Configuration = new(),
+            Conditionals = new() { new() },
+        };
+    }
+
+    private void Save()
+    {
+        if (LabelProfile.Conditionals != null)
+        {
+            for (int i = 0; i < LabelProfile.Conditionals.Count; i++)
+            {
+                var conditional = LabelProfile.Conditionals.ElementAt(i);
+
+                if (String.IsNullOrEmpty(conditional.Key) && String.IsNullOrEmpty(conditional.Value))
+                {
+                    LabelProfile.Conditionals.Remove(conditional);
+                    i--;
+                }
+            }
+        }
+
+        LabelProfileService.Add(LabelProfile);
+        NavigationManager.NavigateTo("/");
+    }
+}

@@ -1,0 +1,38 @@
+﻿@inject NavigationManager NavigationManager
+@using IPrint.Models
+@using IPrint.Services
+
+<form>
+    <div class="row">
+        <div class="form-group col-12 col-md-6">
+            <label for="id">Id equipo</label>
+            <input type="number" class="form-control" id="id" @bind="UserConfig.ComputerId" required />
+        </div>
+        <div class="form-group col-12 col-md-6">
+            <label for="name">Nombre equipo</label>
+            <input type="text" class="form-control" id="name" @bind="UserConfig.ComputerName" required />
+        </div>
+    </div>
+    <div class="form-group mt-2">
+        <label for="company-name">Token</label>
+        <input type="text" class="form-control" id="token" @bind="UserConfig.Token" required />
+    </div>
+</form>
+<div class="d-flex justify-content-end mt-5">
+    <button type="button" class="btn btn-primary" disabled="@IsNotValidForm" @onclick="async () => await OnSubmit.InvokeAsync(UserConfig)">Guardar</button>
+</div>
+
+@code {
+    [Parameter]
+    public UserConfig? UserConfig { get; set; }
+
+    [Parameter]
+    public EventCallback<UserConfig> OnSubmit { get; set; }
+
+    protected override void OnInitialized()
+    {
+        UserConfig ??= new();
+    }
+
+    private bool IsNotValidForm => UserConfig.ComputerId < 1 || string.IsNullOrEmpty(UserConfig.ComputerName) || string.IsNullOrEmpty(UserConfig.Token);
+}

@@ -1,0 +1,52 @@
+﻿@using IPrint.Components.Pages.Printers
+@using IPrint.Models
+@using IPrint.Services
+@inject NavigationManager NavigationManager
+
+<ul class="list-group mt-3">
+    @if (PrinterConfigs == null || PrinterConfigs.Count == 0)
+    {
+        <li class="list-group-item d-flex align-items-center bg-light">
+            <i class="bi bi-info-circle-fill me-2"></i> No tienes impresoras configuradas.
+        </li>
+    }
+    else
+    {
+        @foreach (PrinterConfig printerConfig in PrinterConfigs)
+        {
+            <li class="list-group-item d-flex align-items-center">
+                <div class="d-flex align-items-center justify-content-between w-100">
+                    @printerConfig.Name
+                    <span class="badge bg-primary rounded-pill">@printerConfig.Type</span>
+                </div>
+                <div class="dropdown">
+                    <i class="bi bi-three-dots-vertical ms-3 cursor-pointer dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones"></i>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" @onclick="() => Edit(printerConfig)">Editar</a></li>
+                        <li><a class="dropdown-item" @onclick="() => Delete(printerConfig)">Eliminar</a></li>
+                    </ul>
+                </div>
+            </li>
+        }
+    }
+</ul>
+
+@code {
+    [Inject]
+    private PrinterConfigService PrinterConfigService { get; set; }
+
+    [Parameter]
+    public List<PrinterConfig> PrinterConfigs { get; set; }
+
+    private void Delete(PrinterConfig printerConfig)
+    {
+        PrinterConfigService.Delete(printerConfig.Id);
+        PrinterConfigs = PrinterConfigs.Where(e => !e.Equals(printerConfig)).ToList();
+    }
+
+    private void Edit(PrinterConfig printerConfig)
+    {
+        EditPrinterConfig.PrinterConfig = printerConfig;
+        NavigationManager.NavigateTo("/editPrinterConfig");
+    }
+}
