@@ -1,12 +1,14 @@
-﻿namespace IPrint
-{
-	public partial class App : Application
-	{
-		public App()
-		{
-			InitializeComponent();
+﻿namespace IPrint;
 
-			MainPage = new MainPage();
-		}
+public partial class App : Application
+{
+	public App()
+	{
+		InitializeComponent();
+	}
+
+	protected override Window CreateWindow(IActivationState? activationState)
+	{
+		return new Window(new MainPage()) { Title = "IPrint" };
 	}
 }
