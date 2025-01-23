@@ -2,7 +2,7 @@
 {
 	public enum PrinterTypes
 	{
-		Ticket,
-		Etiqueta
+		Ticket = 1,
+		Etiqueta = 2
 	}
 }

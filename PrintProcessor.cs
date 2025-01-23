@@ -1,62 +1,68 @@
-﻿using IPrint.Services;
+﻿using IPrint.Entities;
+using IPrint.Helpers;
+using IPrint.Models;
+using IPrint.Services;
 using PdfiumViewer;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
 using Color = System.Drawing.Color;
 
 namespace IPrint
 {
-	public class IPrintProcessor : IDisposable
+	public class PrintProcessor(PrintSpoolerService printSpoolerService, PrinterConfigService printerConfigService, LabelProfileService labelProfileService) : IDisposable
 	{
-		private static readonly PrintSpoolerService spoolerService = new();
-		private readonly int pollingInterval = 5000;
-		private CancellationTokenSource _cts;
+		private readonly int PollingInterval = 5000;
+		private CancellationTokenSource Cts;
+		private List<PrinterConfig> PrintersConfigs;
+        private List<LabelProfile> LabelsProfiles;
 
-		public void StartProcessing()
+        public void StartProcessing()
 		{
-			_cts = new CancellationTokenSource();
-			Task.Run(() => ProcessLoop(_cts.Token));
+			Cts = new CancellationTokenSource();
+			Task.Run(() => ProcessLoop(Cts.Token));
 		}
 
 		public void StopProcessing()
 		{
-			_cts.Cancel();
+			Cts.Cancel();
 		}
 
 		private async Task ProcessLoop(CancellationToken token)
 		{
-			while (!token.IsCancellationRequested)
+			var printersConfigs = printerConfigService.GetAll();
+			var labelsProfiles = labelProfileService.GetAll();
+
+            while (!token.IsCancellationRequested)
 			{
-				var entries = await spoolerService.GetPendingAsync();
+				var entries = await printSpoolerService.GetPendingAsync();
 
 				foreach (var entry in entries)
 				{
-					try
+					var printerConfig = printersConfigs.FirstOrDefault(e => e.Type.GetHashCode() == entry.PrinterId);
+					var labelProfiles = labelsProfiles.Where(e => !printerConfig.LabelProfileIds.IsNullOrEmpty() && printerConfig.LabelProfileIds.Contains(e.Id)).ToList();
+                    var labelProfile = MatchLabelProfile(entry, labelProfiles);
+
+                    try
 					{
 						byte[] pdfBytes = await DownloadPdf(entry.Url);
-						int width = CentimetersToPoints(10);
-						int height = CentimetersToPoints(15);
-
-						if (entry.IdEquipo == 1)
-						{
-							width = CentimetersToPoints(7);
-							height = 0;
-						}
+						int width = CentimetersToPoints(labelProfile.Configuration.Width);
+						int height = CentimetersToPoints(labelProfile.Configuration.Height);
 
 						PrintPdf(pdfBytes, "", width, height, entry.Porait);
 
 						// Si es exitoso, marcar como procesado
-						await spoolerService.UpdateStatusAsync(1, entry.IdEmpresa);
+						await printSpoolerService.UpdateStatusAsync(1, entry.IdEmpresa);
 					}
 					catch (Exception)
 					{
 						// Si falla, incrementar intentos
-						await spoolerService.UpdateStatusAsync(0, entry.IdEmpresa);
+						await printSpoolerService.UpdateStatusAsync(0, entry.IdEmpresa);
 					}
 				}
 
 				// Esperar el intervalo antes de la siguiente consulta
-				await Task.Delay(pollingInterval, token);
+				await Task.Delay(PollingInterval, token);
 			}
 		}
 
@@ -97,7 +103,11 @@ namespace IPrint
 			printDoc.Print();
 		}
 
-
+		LabelProfile? MatchLabelProfile(PrintSpooler printSpooler, List<LabelProfile> labelProfiles)
+		{
+			return null;
+		}
+		
 		static Bitmap RenderPdfPageToImage(PdfDocument pdfDocument, int pageIndex, int width, int height, int dpi, bool rotate)
 		{
 			height = height > 0 ? height : (int)pdfDocument.PageSizes[pageIndex].Height;
@@ -119,7 +129,7 @@ namespace IPrint
 			return bitmap;
 		}
 
-		static int CentimetersToPoints(int centimeter)
+		static int CentimetersToPoints(double centimeter)
 		{
 			return (int)(centimeter * 300 / 2.54);
 		}

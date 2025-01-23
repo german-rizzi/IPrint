@@ -28,6 +28,7 @@ namespace IPrint
             builder.Services.AddScoped<FileStorageService>();
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<ToastService>();
+            builder.Services.AddScoped<PrintSpoolerService>();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
