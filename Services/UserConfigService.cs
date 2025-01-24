@@ -6,25 +6,19 @@ namespace IPrint.Services
 {
     public class UserConfigService(FileStorageService fileStorageService)
     {
-        private static readonly string FILE_CONFIG_PATH = Path.Combine("user", "config.json");
+        private static readonly string FILE_CONFIG_PATH = Path.Combine(FileSystem.AppDataDirectory, "user", "config.json");
 
         public void Add(UserConfig userConfig)
         {
             string jsonConfigs = JsonSerializer.Serialize(userConfig);
             byte[] content = Encoding.UTF8.GetBytes(jsonConfigs);
-
-            string appPath = AppContext.BaseDirectory;
-            string filePath = Path.Combine(appPath, FILE_CONFIG_PATH);
-            fileStorageService.Save(filePath, content, true);
+            fileStorageService.Save(FILE_CONFIG_PATH, content, true);
         }
 
         public UserConfig Get()
         {
             UserConfig result = null;
-            string appPath = AppContext.BaseDirectory;
-            string filePath = Path.Combine(appPath, FILE_CONFIG_PATH);
-
-            byte[] content = fileStorageService.Get(filePath);
+            byte[] content = fileStorageService.Get(FILE_CONFIG_PATH);
 
             if (content.Length > 0)
             {

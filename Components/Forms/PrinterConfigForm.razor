@@ -1,6 +1,5 @@
 ﻿@inject NavigationManager NavigationManager
 @using System.Drawing.Printing
-@using Blazored.Toast.Services
 @using IPrint.Components.Commons
 @using IPrint.Exceptions
 @using IPrint.Models
@@ -12,9 +11,9 @@
         <label for="printer">Impresora</label>
         <select class="form-control" id="printer" @bind="PrinterConfig.Name" required>
             <option selected disabled>Seleccione una opcion</option>
-            @foreach (string printer in PrinterSettings.InstalledPrinters)
+            @foreach (string printerName in SystemPrinterNames)
             {
-                <option value="@printer">@printer</option>
+                <option value="@printerName">@printerName</option>
             }
         </select>
     </div>
@@ -41,11 +40,15 @@
     private PrinterConfigService PrinterConfigService { get; set; }
 
     [Inject]
+    private PrinterService PrinterService { get; set; }
+
+    [Inject]
     private LabelProfileService LabelProfileService { get; set; }
 
     private List<LabelProfile> LabelProfiles { get; set; }
 
     private List<LabelProfile> SelectedLabelProfiles { get; set; }
+    private List<string> SystemPrinterNames { get; set; }
 
     [Parameter]
     public PrinterConfig PrinterConfig { get; set; }
@@ -62,6 +65,8 @@
 
         LabelProfiles = LabelProfileService.GetAll();
         SelectedLabelProfiles = LabelProfiles.Where(e => PrinterConfig.LabelProfileIds?.Contains(e.Id) ?? false).ToList();
+
+        SystemPrinterNames = PrinterService.GetSystemPrinterNames();
     }
 
     private void OnChangeSelectedLabelProfiles(List<LabelProfile> labelProfiles)

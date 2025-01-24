@@ -7,7 +7,7 @@ namespace IPrint.Services
 {
     public class LabelProfileService(FileStorageService fileStorageService, PrinterConfigService printerConfigService)
 	{
-		private static readonly string FILE_CONFIG_PATH = Path.Combine("user", "labels", "config.json");
+		private static readonly string FILE_CONFIG_PATH = Path.Combine(FileSystem.AppDataDirectory, "user", "labels", "config.json");
 
         private List<PrinterConfig> printerConfigs { get { return printerConfigService.GetAll(); } }
 
@@ -29,13 +29,13 @@ namespace IPrint.Services
 
         private void setToPrintersConfigs(LabelProfile labelProfile)
         {
-            if (labelProfile.PrinterIds?.Any() ?? false)
+            if (labelProfile.Printers?.Any() ?? false)
             {
                 var printerConfigs = printerConfigService.GetAll();
 
                 if (printerConfigs.Any())
                 {
-                    var selectedPrinterConfigs = printerConfigs.Where(e => labelProfile.PrinterIds.Contains(e.Id) && !(e.LabelProfileIds?.Contains(labelProfile.Id) ?? false)).ToList();
+                    var selectedPrinterConfigs = printerConfigs.Where(e => labelProfile.Printers.Contains(e.Name) && !(e.LabelProfileIds?.Contains(labelProfile.Id) ?? false)).ToList();
                     
                     if(selectedPrinterConfigs.Any())
                     {
@@ -73,10 +73,7 @@ namespace IPrint.Services
         public List<LabelProfile> GetAll()
 		{
 			var result = new List<LabelProfile>();
-			string appPath = AppContext.BaseDirectory;
-			string filePath = Path.Combine(appPath, FILE_CONFIG_PATH);
-
-			byte[] content = fileStorageService.Get(filePath);
+			byte[] content = fileStorageService.Get(FILE_CONFIG_PATH);
 			
 			if(content.Length > 0)
 			{
@@ -98,10 +95,7 @@ namespace IPrint.Services
 		{
             string jsonConfigs = JsonSerializer.Serialize(configs);
             byte[] content = Encoding.UTF8.GetBytes(jsonConfigs);
-
-            string appPath = AppContext.BaseDirectory;
-            string filePath = Path.Combine(appPath, FILE_CONFIG_PATH);
-            fileStorageService.Save(filePath, content, true);
+            fileStorageService.Save(FILE_CONFIG_PATH, content, true);
         }
     }
 }

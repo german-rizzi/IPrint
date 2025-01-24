@@ -158,6 +158,6 @@
 
     private void OnSelectPrinterProfilesChange(List<PrinterConfig> printersConfigs)
     {
-        LabelProfile.PrinterIds = printersConfigs.Select(e => e.Id).ToList();
+        LabelProfile.Printers = printersConfigs.Select(e => e.Name).ToList();
     }
 }

@@ -40,7 +40,7 @@
 
     private void Delete(PrinterConfig printerConfig)
     {
-        PrinterConfigService.Delete(printerConfig.Id);
+        PrinterConfigService.Delete(printerConfig.Name);
         PrinterConfigs = PrinterConfigs.Where(e => !e.Equals(printerConfig)).ToList();
     }
 
