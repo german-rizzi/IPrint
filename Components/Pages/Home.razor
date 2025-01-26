@@ -5,6 +5,7 @@
 @using IPrint.Components.Tables
 @using IPrint.Models
 @using IPrint.Services
+@using IPrint
 
 <div class="row">
     <div class="col-lg-8 col-12">
@@ -34,6 +35,9 @@
             </div>
         </div>
     </div>
+    <div class="col-12 mt-4">
+        <button class="btn btn-primary" @onclick="() => RunPrintProcessor()">Iniciar</button>
+    </div>
 </div>
 
 @code {
@@ -46,6 +50,9 @@
     [Inject]
     private LabelProfileService LabelProfileService { get; set; }
 
+    [Inject]
+    private PrintProcessor PrintProcessor { get; set; }
+
     private UserConfig UserConfig { get; set; }
     private List<PrinterConfig> PrinterConfigs { get; set; }
     private List<LabelProfile> LabelProfiles { get; set; }
@@ -55,5 +62,9 @@
         UserConfig = UserConfigService.Get() ?? new();
         PrinterConfigs = PrinterConfigService.GetAll();
         LabelProfiles = LabelProfileService.GetAll();
+    }
+
+    private void RunPrintProcessor() {
+        PrintProcessor.StartProcessing();
     }
 }

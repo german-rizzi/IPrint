@@ -1,4 +1,5 @@
 ﻿@inject NavigationManager NavigationManager
+@using Blazorise.Extensions
 @using IPrint.Models
 @using IPrint.Services
 
@@ -14,8 +15,21 @@
         </div>
     </div>
     <div class="form-group mt-2">
-        <label for="company-name">Token</label>
-        <input type="text" class="form-control" id="token" @bind="UserConfig.Token" required />
+        <label for="token">Token</label>
+        <input type="text" class="form-control" id="token" value="@UserConfig.Token" @onchange="async (ChangeEventArgs e) => await SetAndValidateToken(e.Value?.ToString() ?? string.Empty)" required />
+        @if(ValidatingToken) {
+            <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Validando token <span class="spinner-border text-warning m-0"></span></p>
+        }
+        else if (IsValidToken.HasValue) {
+            if (IsValidToken.Value)
+            {
+                <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Token valido <span class="bi bi-check text-success m-0"></span></p>
+            }
+            else
+            {
+                <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Token no valido<span class="bi bi-x text-danger m-0"></span></p>
+            }
+        }
     </div>
 </form>
 <div class="d-flex justify-content-end mt-5">
@@ -23,16 +37,49 @@
 </div>
 
 @code {
+    [Inject]
+    private EncuentraService EncuentraService { get; set; }
+    
+    [Inject]
+    private AlertService AlertService { get; set; }
+    
     [Parameter]
     public UserConfig? UserConfig { get; set; }
 
     [Parameter]
     public EventCallback<UserConfig> OnSubmit { get; set; }
 
+    private bool? IsValidToken { get; set; }
+    private bool ValidatingToken { get; set; }
+
     protected override void OnInitialized()
     {
         UserConfig ??= new();
     }
 
-    private bool IsNotValidForm => UserConfig.ComputerId < 1 || string.IsNullOrEmpty(UserConfig.ComputerName) || string.IsNullOrEmpty(UserConfig.Token);
+    private async Task SetAndValidateToken(string token)
+    {
+        UserConfig.Token = token;
+        
+        if (!token.IsNullOrEmpty())
+        {
+            ValidatingToken = true;
+            var response = await EncuentraService.ValidateTokenAsync(token);
+            var status = response?.Status;
+            IsValidToken = "200".Equals(status);
+        
+            // if (!new []{"200", "401"}.Contains(status))
+            // {
+            //     AlertService.ShowAlert("Error", "Ha ocurrido un error inesperado al validar el token");
+            // }
+            // else if ("401".Equals(status))
+            // {
+            //     AlertService.ShowAlert("Error", "Token no valido");
+            // }
+        }
+
+        ValidatingToken = false;
+    }
+
+    private bool IsNotValidForm => UserConfig.ComputerId < 1 || string.IsNullOrEmpty(UserConfig.ComputerName) || string.IsNullOrEmpty(UserConfig.Token) || IsValidToken.HasValue && IsValidToken.Value;
 }

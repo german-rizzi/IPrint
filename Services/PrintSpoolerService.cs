@@ -3,17 +3,16 @@ using IPrint.Repositories;
 
 namespace IPrint.Services
 {
-	public class PrintSpoolerService()
+	public class PrintSpoolerService(PrintSpoolerRepository printSpoolerRepository )
 	{
-		private static readonly PrintSpoolerRepository printSpoolerRepository = new();
-		public async Task<IEnumerable<PrintSpooler>> GetPendingAsync()
+		public async Task<IEnumerable<PrintSpooler>> GetByStatusAsync(int status, int companyId)
 		{
-			return await printSpoolerRepository.GetPendingAsync();
+			return await printSpoolerRepository.GetByStatusAsync(status, companyId);
 		}
 
-		public async Task UpdateStatusAsync(int status, int idEmpresa)
+		public async Task UpdateStatusAsync(string id, int status, int comapnyId)
 		{
-			await printSpoolerRepository.UpdateStatusAsync(status, idEmpresa);
+			await printSpoolerRepository.UpdateStatusAsync(id, status, comapnyId);
 		}
 	}
 }

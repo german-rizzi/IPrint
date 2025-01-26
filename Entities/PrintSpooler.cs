@@ -2,13 +2,12 @@
 {
 	public class PrintSpooler
 	{
+		public string Id { get; set; }
         public int PrinterId { get; set; }
 		public string Url { get; set; }
 		public bool Porait { get; set; }
-		public string Courier { get; set; }
-		public int Procesado { get; set; }
-		public int Intentos { get; set; }
-        public int IdEquipo { get; set; }
-        public int IdEmpresa { get; set; }
+		public int Printed { get; set; }
+        public int EquipId { get; set; }
+        public int CompanyId { get; set; }
     }
 }

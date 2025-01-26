@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace IPrint.Services
 {
-    public class PrinterConfigService(FileStorageService fileStorageService, PrinterService printerService)
+    public class PrinterConfigService(FileStorageService fileStorageService)
 	{
 		private static readonly string FILE_CONFIG_PATH = Path.Combine(FileSystem.AppDataDirectory, "user", "printers", "config.json");
 

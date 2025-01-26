@@ -3,11 +3,20 @@
 @using IPrint.Components.Commons
 @using IPrint.Exceptions
 @using IPrint.Models
-@using static System.Drawing.Printing.PrinterSettings
 @using IPrint.Services
 
 <form>
     <div class="form-group">
+        <label for="printerId">Numero de impresora</label>
+        <select class="form-control" id="printerId" @bind="PrinterConfig.Id" required>
+            <option selected disabled>Seleccione una opcion</option>
+            @for(var i = 1; i < 5; i++)
+            {
+                <option value="@i">Impresora #@i</option>
+            }
+        </select>
+    </div>
+    <div class="form-group mt-3">
         <label for="printer">Impresora</label>
         <select class="form-control" id="printer" @bind="PrinterConfig.Name" required>
             <option selected disabled>Seleccione una opcion</option>
@@ -28,7 +37,7 @@
     </div>
     <div class="form-group mt-3">
         <label for="printer">Pefiles de impresión</label>
-        <MultiSelect Options="LabelProfiles" SelectedOptions="SelectedLabelProfiles" StringSelector="(item) => item.Name" CanFilter="true" SelectedOptionsChanged="EventCallback.Factory.Create<List<LabelProfile>>(this, OnChangeSelectedLabelProfiles)" />
+        <MultiSelect Options="LabelProfiles" SelectedOptions="SelectedLabelProfiles" StringSelector="(item) => item.Name" CanFilter="true" SelectedOptionsChanged="EventCallback.Factory.Create<List<LabelProfile>>(this, OnChangeSelectedLabelProfiles)"/>
     </div>
 </form>
 <div class="d-flex justify-content-end mt-5">
