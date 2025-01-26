@@ -44,7 +44,7 @@
 
     <ItemGroup>
         <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#512BD4" />
 
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
@@ -68,10 +68,15 @@
         <PackageReference Include="Blazorise.Icons.Bootstrap" Version="1.7.1" />
         <PackageReference Include="Dapper" Version="2.1.35" />
         <PackageReference Include="itext7" Version="9.0.0" />
+        <PackageReference Include="MySqlConnector" Version="2.4.0" />
         <PackageReference Include="PdfiumViewer" Version="2.13.0" />
         <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
-        <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+        <PackageReference Include="System.Drawing.Common" Version="9.0.1" />
         <PackageReference Include="System.Management" Version="9.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Models\Encuentra\Responses\" />
     </ItemGroup>
 
 </Project>

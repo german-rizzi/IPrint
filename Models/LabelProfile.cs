@@ -9,6 +9,6 @@ namespace IPrint.Models
         public LabelConfig Configuration { get; set; }
         public List<LabelProfileConditional> Conditionals { get; set; }
         [JsonIgnore]
-        public List<string> PrinterIds { get; set; }
+        public List<string> Printers { get; set; }
     }
 }

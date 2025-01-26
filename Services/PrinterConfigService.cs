@@ -6,18 +6,15 @@ using System.Text.Json;
 
 namespace IPrint.Services
 {
-    public class PrinterConfigService(FileStorageService fileStorageService, PrinterService printerService)
+    public class PrinterConfigService(FileStorageService fileStorageService)
 	{
-		private static readonly string FILE_CONFIG_PATH = Path.Combine("user", "printers", "config.json");
+		private static readonly string FILE_CONFIG_PATH = Path.Combine(FileSystem.AppDataDirectory, "user", "printers", "config.json");
 
 		public void Add(PrinterConfig printerConfig)
 		{
-            var systemPrinter = GetSystemPrinter(printerConfig.Name);
-            printerConfig.Id = systemPrinter.Id;
-
             var configs = GetAll();
 
-            if (configs.Any(e => e.Id == printerConfig.Id))
+            if (configs.Any(e => e.Name == printerConfig.Name))
             {
                 throw new AlertException("Impresora ya existente");
             }
@@ -37,7 +34,7 @@ namespace IPrint.Services
 
             foreach (var printerConfig in printerConfigs)
             {
-                var exists = configs.First(e => e.Id.Equals(printerConfig.Id));
+                var exists = configs.First(e => e.Name.Equals(printerConfig.Name));
 
                 if (exists is not null)
                 {
@@ -52,10 +49,7 @@ namespace IPrint.Services
         public List<PrinterConfig> GetAll()
 		{
 			var result = new List<PrinterConfig>();
-			string appPath = AppContext.BaseDirectory;
-			string filePath = Path.Combine(appPath, FILE_CONFIG_PATH);
-
-			byte[] content = fileStorageService.Get(filePath);
+			byte[] content = fileStorageService.Get(FILE_CONFIG_PATH);
 			
 			if(content.Length > 0)
 			{
@@ -70,10 +64,10 @@ namespace IPrint.Services
 			return result;
 		}
 
-        public void Delete(string id)
+        public void Delete(string name)
         {
             var configs = GetAll();
-            configs = configs.Where(e => !e.Id.Equals(id)).ToList();
+            configs = configs.Where(e => !e.Name.Equals(name)).ToList();
             SaveConfig(configs);
         }
 
@@ -81,22 +75,7 @@ namespace IPrint.Services
         {
             string jsonConfigs = JsonSerializer.Serialize(configs);
             byte[] content = Encoding.UTF8.GetBytes(jsonConfigs);
-
-            string appPath = AppContext.BaseDirectory;
-            string filePath = Path.Combine(appPath, FILE_CONFIG_PATH);
-            fileStorageService.Save(filePath, content, true);
-        }
-
-        private SystemPrinter GetSystemPrinter(string name)
-        {
-            var printer = printerService.Find(name);
-
-            if (printer is null)
-            {
-                throw new AlertException("No se encontró impresora en el sistema");
-            }
-
-            return printer;
+            fileStorageService.Save(FILE_CONFIG_PATH, content, true);
         }
     }
 }

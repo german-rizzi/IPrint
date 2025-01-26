@@ -10,32 +10,35 @@ using Color = System.Drawing.Color;
 
 namespace IPrint
 {
-	public class PrintProcessor(PrintSpoolerService printSpoolerService, PrinterConfigService printerConfigService, LabelProfileService labelProfileService) : IDisposable
+	public class PrintProcessor(PrintSpoolerService printSpoolerService, UserConfigService userConfigService, PrinterConfigService printerConfigService, LabelProfileService labelProfileService) : IDisposable
 	{
 		private readonly int PollingInterval = 5000;
 		private CancellationTokenSource Cts;
-		private List<PrinterConfig> PrintersConfigs;
-        private List<LabelProfile> LabelsProfiles;
+		private bool running;
 
         public void StartProcessing()
 		{
+			if (running) StopProcessing();
 			Cts = new CancellationTokenSource();
 			Task.Run(() => ProcessLoop(Cts.Token));
+			running = true;
 		}
 
 		public void StopProcessing()
 		{
 			Cts.Cancel();
+			running = false;
 		}
 
 		private async Task ProcessLoop(CancellationToken token)
 		{
+			var userConfig = userConfigService.Get();
 			var printersConfigs = printerConfigService.GetAll();
 			var labelsProfiles = labelProfileService.GetAll();
 
             while (!token.IsCancellationRequested)
 			{
-				var entries = await printSpoolerService.GetPendingAsync();
+				var entries = await printSpoolerService.GetByStatusAsync(0, 22);
 
 				foreach (var entry in entries)
 				{
@@ -52,12 +55,12 @@ namespace IPrint
 						PrintPdf(pdfBytes, "", width, height, entry.Porait);
 
 						// Si es exitoso, marcar como procesado
-						await printSpoolerService.UpdateStatusAsync(1, entry.IdEmpresa);
+						await printSpoolerService.UpdateStatusAsync(entry.Id, 1, entry.CompanyId);
 					}
 					catch (Exception)
 					{
 						// Si falla, incrementar intentos
-						await printSpoolerService.UpdateStatusAsync(0, entry.IdEmpresa);
+						await printSpoolerService.UpdateStatusAsync(entry.Id, 0, entry.CompanyId);
 					}
 				}
 

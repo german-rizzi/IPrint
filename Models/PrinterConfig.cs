@@ -5,7 +5,7 @@ namespace IPrint.Models
 {
     public class PrinterConfig
 	{
-		public string Id { get; set; }
+		public int Id { get; set; }
 		public string Name { get; set; }
         [JsonConverter(typeof(EnumStringConverter<PrinterTypes>))]
         public PrinterTypes Type { get; set; }

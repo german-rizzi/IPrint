@@ -1,6 +1,6 @@
 ﻿using Dapper;
 using IPrint.Entities;
-using System.Data.SqlClient;
+using MySqlConnector;
 
 namespace IPrint.Repositories
 {
@@ -10,21 +10,23 @@ namespace IPrint.Repositories
 
 		public PrintSpoolerRepository()
 		{
-			_connectionString = "";
+			_connectionString = "Server=127.0.0.1;Port=33073;Database=encuentra_api_dev;User ID=root;Password=Encu3ntrA.;";
 		}
 
-		public async Task<IEnumerable<PrintSpooler>> GetPendingAsync()
+		public async Task<IEnumerable<PrintSpooler>> GetByStatusAsync(int status, int companyId)
 		{
-			using var connection = new SqlConnection(_connectionString);
-			string query = "SELECT * FROM print_spooler WHERE procesado = 0";
-			return await connection.QueryAsync<PrintSpooler>(query);
+			await using var connection = new MySqlConnection(_connectionString);
+			await connection.OpenAsync();
+			string query = "SELECT Id, UrlArchivo as Url, Printed, Porait, PrinterId, IdEquipo as EquipId, IdEmpresa as CompanyId  FROM print_spooler WHERE idEmpresa = @CompanyId and printed = @Printed";
+			return await connection.QueryAsync<PrintSpooler>(query, new { CompanyId = companyId, Printed = status });
 		}
 
-		public async Task UpdateStatusAsync(int status, int idEmpresa)
+		public async Task UpdateStatusAsync(string id, int status, int companyId)
 		{
-			using var connection = new SqlConnection(_connectionString);
-			string query = "UPDATE print_spooler SET procesado = @Procesado, intentos = intentos + 1 WHERE idEmpresa = @IdEmpresa";
-			await connection.ExecuteAsync(query, new { Procesado = status, IdEmpresa = idEmpresa });
+			await using var connection = new MySqlConnection(_connectionString);
+			await connection.OpenAsync();
+			string query = "UPDATE print_spooler SET printed = @Printed, intentos = intentos + 1 WHERE idEmpresa = @CompanyId and id = @Id";
+			await connection.ExecuteAsync(query, new { Id = id, CompanyId = companyId, Printed = status });
 		}
 	}
 }
