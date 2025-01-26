@@ -18,16 +18,16 @@
         <label for="token">Token</label>
         <input type="text" class="form-control" id="token" value="@UserConfig.Token" @onchange="async (ChangeEventArgs e) => await SetAndValidateToken(e.Value?.ToString() ?? string.Empty)" required />
         @if(ValidatingToken) {
-            <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Validando token <span class="spinner-border text-warning m-0"></span></p>
+            <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Validando token <span class="spinner-border text-warning m-0 ms-2" style="height: 14px; width: 14px;"></span></p>
         }
         else if (IsValidToken.HasValue) {
             if (IsValidToken.Value)
             {
-                <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Token valido <span class="bi bi-check text-success m-0"></span></p>
+                <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Token valido <span class="bi bi-check text-success m-0" style="font-size: 22px"></span></p>
             }
             else
             {
-                <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Token no valido<span class="bi bi-x text-danger m-0"></span></p>
+                <p class="badge bg-light text-dark rounded-pill mt-2 d-flex justify-content-center align-items-center">Token no valido<span class="bi bi-x text-danger m-0" style="font-size: 22px"></span></p>
             }
         }
     </div>
