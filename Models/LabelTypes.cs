@@ -1,6 +1,6 @@
 ﻿namespace IPrint.Models
 {
-	public enum PrinterTypes
+	public enum LabelTypes
 	{
 		Ticket = 1,
 		Etiqueta = 2

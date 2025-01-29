@@ -1,63 +1,123 @@
-﻿using IPrint.Entities;
+﻿using Blazorise;
+using IPrint.Entities;
 using IPrint.Helpers;
 using IPrint.Models;
+using IPrint.Models.Encuentra;
+using IPrint.Models.Encuentra.Responses;
 using IPrint.Services;
 using PdfiumViewer;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
 using Color = System.Drawing.Color;
 
 namespace IPrint
 {
-	public class PrintProcessor(PrintSpoolerService printSpoolerService, UserConfigService userConfigService, PrinterConfigService printerConfigService, LabelProfileService labelProfileService) : IDisposable
+    public class PrintProcessor(PrintSpoolerService printSpoolerService, UserConfigService userConfigService, PrinterConfigService printerConfigService, LabelProfileService labelProfileService, EncuentraService encuentraService, AlertService alertService) : IDisposable
 	{
 		private readonly int PollingInterval = 5000;
 		private CancellationTokenSource Cts;
-		private bool running;
+		private bool Running;
+		private UserConfig UserConfig;
+		private List<PrinterConfig> PrintersConfigs;
+		private List<LabelProfile> LabelsProfiles;
+		private EncuentraUser EncuentraUser;
+		private EncuentraSucursal EncuentraSucursal;
 
         public void StartProcessing()
 		{
-			if (running) StopProcessing();
-			Cts = new CancellationTokenSource();
-			Task.Run(() => ProcessLoop(Cts.Token));
-			running = true;
+			if (Running) StopProcessing();
+			Task.Run(() => InitAsync());
+			Running = true;
 		}
 
 		public void StopProcessing()
 		{
-			Cts.Cancel();
-			running = false;
+			if (Cts is not null)
+			{
+                Cts.Cancel();
+            }
+
+			Running = false;
 		}
 
-		private async Task ProcessLoop(CancellationToken token)
+		private async Task InitAsync()
 		{
-			var userConfig = userConfigService.Get();
-			var printersConfigs = printerConfigService.GetAll();
-			var labelsProfiles = labelProfileService.GetAll();
-
-            while (!token.IsCancellationRequested)
+			try
 			{
-				var entries = await printSpoolerService.GetByStatusAsync(0, 22);
+				UserConfig = userConfigService.Get() ?? throw new ArgumentNullException("User config not found");
+                
+				var encuentraTokenValidationResponse = await ValidateEncuentraToken(UserConfig.Token) ?? throw new ArgumentNullException("Encuentra token validation error");
+				EncuentraUser = encuentraTokenValidationResponse.User ?? throw new ArgumentNullException("Encuentra user not fount");
+                EncuentraSucursal = encuentraTokenValidationResponse.Sucursal ?? throw new ArgumentNullException("Encuentra sucursal not fount");
+                
+				PrintersConfigs = printerConfigService.GetAll();
+
+                if (PrintersConfigs.IsNullOrEmpty())
+                {
+                    throw new ArgumentNullException("Printers configs not found");
+                }
+
+                LabelsProfiles = labelProfileService.GetAll();
+
+                if (LabelsProfiles.IsNullOrEmpty())
+                {
+                    throw new ArgumentNullException("Labels profiles not found");
+                }
+
+                Cts = new CancellationTokenSource();
+                await ProcessLoopAsync(Cts.Token);
+            }
+			catch (Exception ex)
+			{
+                Dispose();
+				alertService.ShowAlert("Error", "Ah ocurrido un error inesperado al iniciar el sistema de impresión");
+            }
+        }
+
+        private async Task ProcessLoopAsync(CancellationToken token)
+		{
+			while (!token.IsCancellationRequested)
+			{
+				//var entries = await printSpoolerService.GetByStatusAsync(0, UserConfig.ComputerId, EncuentraUser.CompanyId);
+				var entries = new List<PrintSpooler>() { 
+					new()
+					{
+						Id = "1",
+						Url = "https://encuentra.200.com.uy/files/pdf/22_0_935700.pdf",
+						Porait = false,
+						Printed = 0,
+						PrinterId = 2,
+						EquipId = UserConfig.ComputerId,
+						CompanyId = EncuentraUser.CompanyId
+                    } 
+				};
 
 				foreach (var entry in entries)
 				{
-					var printerConfig = printersConfigs.FirstOrDefault(e => e.Type.GetHashCode() == entry.PrinterId);
-					var labelProfiles = labelsProfiles.Where(e => !printerConfig.LabelProfileIds.IsNullOrEmpty() && printerConfig.LabelProfileIds.Contains(e.Id)).ToList();
-                    var labelProfile = MatchLabelProfile(entry, labelProfiles);
-
                     try
 					{
-						byte[] pdfBytes = await DownloadPdf(entry.Url);
-						int width = CentimetersToPoints(labelProfile.Configuration.Width);
-						int height = CentimetersToPoints(labelProfile.Configuration.Height);
+                        var printerConfig = PrintersConfigs.FirstOrDefault(e => e.Type.GetHashCode() == entry.PrinterId || entry.PrinterId > 2 && e.Type == LabelTypes.Etiqueta);
 
-						PrintPdf(pdfBytes, "", width, height, entry.Porait);
+                        if (printerConfig is null)
+                        {
+                            throw new ArgumentNullException("Printer config not found for the current print");
+                        }
+
+                        var labelProfiles = LabelsProfiles.Where(e => !printerConfig.LabelProfileIds.IsNullOrEmpty() && printerConfig.LabelProfileIds.Contains(e.Id)).ToList();
+                        var labelProfile = MatchLabelProfile(entry, labelProfiles);
+
+                        if (labelProfile is null)
+                        {
+                            throw new ArgumentNullException("Label profile not found for the current print");
+                        }
+
+                        byte[] pdfBytes = await DownloadPdf(entry.Url);
+						PrintPdf(pdfBytes, "", labelProfile.Configuration.Width, labelProfile.Configuration.Height, entry.Porait);
 
 						// Si es exitoso, marcar como procesado
 						await printSpoolerService.UpdateStatusAsync(entry.Id, 1, entry.CompanyId);
 					}
-					catch (Exception)
+					catch (Exception ex)
 					{
 						// Si falla, incrementar intentos
 						await printSpoolerService.UpdateStatusAsync(entry.Id, 0, entry.CompanyId);
@@ -75,71 +135,91 @@ namespace IPrint
 			return await client.GetByteArrayAsync(url);
 		}
 
-		static void PrintPdf(byte[] pdfBytes, string printerName, int pageWidth, int pageHeight, bool rotate)
+        static void PrintPdf(byte[] pdfBytes, string printerName, double pageWidth, double pageHeight, bool rotate)
+        {
+            PrintDocument printDoc = new PrintDocument();
+            if (!string.IsNullOrEmpty(printerName))
+            {
+                printDoc.PrinterSettings.PrinterName = printerName;
+            }
+
+            int currentPage = 0, dpi = 300;
+            using var pdfStream = new MemoryStream(pdfBytes);
+            using var pdfDocument = PdfDocument.Load(pdfStream);
+
+            var pixelsWidth = (int)(pageWidth * dpi / 2.54f);
+            var pixelsHeight = (int)(pageHeight * dpi / 2.54f);
+
+            printDoc.PrintPage += (sender, e) =>
+            {
+                e.PageSettings.Margins = new Margins(0, 0, 0, 0);
+
+                // Renderiza la página actual a una imagen
+                Bitmap bmp = RenderPdfPageToImage(pdfDocument, currentPage, pixelsWidth, pixelsHeight, dpi, rotate);
+
+                // Dibuja la imagen en el área de impresión
+                e.Graphics.DrawImage(bmp, 0, 0, pixelsWidth, pixelsHeight);
+
+                currentPage++;
+
+                // Verifica si hay más páginas
+                e.HasMorePages = currentPage < pdfDocument.PageCount;
+            };
+
+            printDoc.Print();
+        }
+
+        static Bitmap RenderPdfPageToImage(PdfDocument pdfDocument, int pageIndex, int pixelsWidth, int pixelsHeight, int dpi, bool rotate)
+        {
+            // Crea un bitmap con las dimensiones correctas
+            Bitmap bitmap = new Bitmap(pixelsWidth, pixelsHeight);
+            using (var graphics = Graphics.FromImage(bitmap))
+            {
+                graphics.Clear(Color.White); // Fondo blanco
+
+                if (rotate)
+                {
+                    graphics.RotateTransform(90);
+                }
+
+                // Define un rectángulo para el área de renderizado
+                var renderArea = new Rectangle(0, 0, pixelsWidth, pixelsHeight);
+
+                // Renderizar la página dentro del área especificada
+                pdfDocument.Render(pageIndex, graphics, dpi, dpi, renderArea, PdfRenderFlags.ForPrinting);
+            }
+
+            return bitmap;
+        }
+
+        LabelProfile? MatchLabelProfile(PrintSpooler printSpooler, List<LabelProfile> labelProfiles)
 		{
-			PrintDocument printDoc = new PrintDocument();
-			if (!string.IsNullOrEmpty(printerName))
+			if (labelProfiles.All(e => e.Conditionals.IsNullOrEmpty()))
 			{
-				printDoc.PrinterSettings.PrinterName = printerName;
+				return labelProfiles.FirstOrDefault();
 			}
-
-			int currentPage = 0;
-			using var pdfStream = new MemoryStream(pdfBytes);
-			using var pdfDocument = PdfDocument.Load(pdfStream);
-
-			printDoc.PrintPage += (sender, e) =>
+			else
 			{
-				e.PageSettings.Margins = new Margins(0, 0, 0, 0);
-
-				// Renderiza la página actual a una imagen
-				Bitmap bmp = RenderPdfPageToImage(pdfDocument, currentPage, pageWidth, pageHeight, 300, rotate);
-
-				// Dibuja la imagen en el área de impresión
-				e.Graphics.DrawImage(bmp, 0, 0, pageWidth, pageHeight);
-
-				currentPage++;
-
-				// Verifica si hay más páginas
-				e.HasMorePages = currentPage < pdfDocument.PageCount;
-			};
-
-			printDoc.Print();
-		}
-
-		LabelProfile? MatchLabelProfile(PrintSpooler printSpooler, List<LabelProfile> labelProfiles)
-		{
-			return null;
-		}
-		
-		static Bitmap RenderPdfPageToImage(PdfDocument pdfDocument, int pageIndex, int width, int height, int dpi, bool rotate)
-		{
-			height = height > 0 ? height : (int)pdfDocument.PageSizes[pageIndex].Height;
-
-			// Renderiza la página especificada
-			Bitmap bitmap = new Bitmap(width, height);
-			using (var graphics = Graphics.FromImage(bitmap))
-			{
-				graphics.Clear(Color.White); // Fondo blanco
-				graphics.RotateTransform(rotate ? 90 : 0);
-
-				// Define un rectángulo para el área de renderizado
-				var renderArea = new Rectangle(0, 0, width, height);
-
-				// Renderizar la página dentro del área especificada
-				pdfDocument.Render(pageIndex, graphics, dpi, dpi, renderArea, PdfRenderFlags.ForPrinting);
+				return null;
 			}
-
-			return bitmap;
-		}
-
-		static int CentimetersToPoints(double centimeter)
-		{
-			return (int)(centimeter * 300 / 2.54);
 		}
 
 		public void Dispose()
 		{
 			StopProcessing();
 		}
-	}
+
+		private async Task<EncuentraTokenValidationResponse?> ValidateEncuentraToken(string token)
+		{
+            EncuentraTokenValidationResponse? result = null;
+            var response = await encuentraService.ValidateTokenAsync(token);
+
+			if(response?.Status?.Equals("200") ?? false)
+			{
+				result = response.Result;
+			}
+
+			return result;
+		}
+    }
 }

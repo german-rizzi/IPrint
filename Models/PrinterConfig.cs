@@ -7,8 +7,8 @@ namespace IPrint.Models
 	{
 		public int Id { get; set; }
 		public string Name { get; set; }
-        [JsonConverter(typeof(EnumStringConverter<PrinterTypes>))]
-        public PrinterTypes Type { get; set; }
+        [JsonConverter(typeof(EnumStringConverter<LabelTypes>))]
+        public LabelTypes Type { get; set; }
 		public List<string> LabelProfileIds { get; set; } = new();
 	}
 }

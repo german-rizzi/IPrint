@@ -17,8 +17,10 @@
             <li class="list-group-item d-flex align-items-center">
                 <div class="d-flex align-items-center justify-content-between w-100">
                     @printerConfig.Name
-                    <span class="badge bg-primary rounded-pill">#@printerConfig.Id</span>
-                    <span class="badge bg-primary rounded-pill">@printerConfig.Type</span>
+                    <div>
+                        <span class="badge bg-primary rounded-pill pe-1" title="Impresora #@printerConfig.Id">#@printerConfig.Id</span>
+                        <span class="badge bg-primary rounded-pill">@printerConfig.Type</span>
+                    </div>
                 </div>
                 <div class="dropdown">
                     <i class="bi bi-three-dots-vertical ms-3 cursor-pointer dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Acciones"></i>

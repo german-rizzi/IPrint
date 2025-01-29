@@ -1,4 +1,4 @@
-namespace IPrint.Models.Encuentra.Requests;
+namespace IPrint.Models.Encuentra;
 
 public class EncuentraSucursal
 {

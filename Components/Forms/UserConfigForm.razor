@@ -67,19 +67,10 @@
             var response = await EncuentraService.ValidateTokenAsync(token);
             var status = response?.Status;
             IsValidToken = "200".Equals(status);
-        
-            // if (!new []{"200", "401"}.Contains(status))
-            // {
-            //     AlertService.ShowAlert("Error", "Ha ocurrido un error inesperado al validar el token");
-            // }
-            // else if ("401".Equals(status))
-            // {
-            //     AlertService.ShowAlert("Error", "Token no valido");
-            // }
         }
 
         ValidatingToken = false;
     }
 
-    private bool IsNotValidForm => UserConfig.ComputerId < 1 || string.IsNullOrEmpty(UserConfig.ComputerName) || string.IsNullOrEmpty(UserConfig.Token) || IsValidToken.HasValue && IsValidToken.Value;
+    private bool IsNotValidForm => UserConfig.ComputerId < 1 || string.IsNullOrEmpty(UserConfig.ComputerName) || string.IsNullOrEmpty(UserConfig.Token) || !IsValidToken.HasValue || !IsValidToken.Value;
 }

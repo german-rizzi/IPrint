@@ -29,7 +29,7 @@
     <div class="form-group mt-3">
         <label for="printerType">Tipo de papel</label>
         <select class="form-control" id="printerType" @bind="PrinterConfig.Type" required>
-            @foreach (string printerType in Enum.GetNames(typeof(PrinterTypes)))
+            @foreach (string printerType in Enum.GetNames(typeof(LabelTypes)))
             {
                 <option value="@printerType">@printerType</option>
             }
@@ -69,7 +69,7 @@
     {
         PrinterConfig ??= new()
             {
-                Type = PrinterTypes.Ticket
+                Type = LabelTypes.Ticket
             };
 
         LabelProfiles = LabelProfileService.GetAll();

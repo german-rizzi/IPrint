@@ -1,5 +1,5 @@
+using IPrint.Models.Encuentra.Responses;
 using System.Text.Json;
-using IPrint.Models.Encuentra.Requests;
 
 namespace IPrint.Services;
 

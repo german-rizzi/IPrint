@@ -26,6 +26,8 @@
     modal.show();
 
     element.addEventListener('hidden.bs.modal', function () {
+        modal.hide();
+        modal.dispose();
         element.remove();
     });
 }
