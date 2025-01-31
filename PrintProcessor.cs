@@ -1,14 +1,11 @@
-﻿using Blazorise;
-using IPrint.Entities;
+﻿using IPrint.Entities;
 using IPrint.Helpers;
 using IPrint.Models;
 using IPrint.Models.Encuentra;
 using IPrint.Models.Encuentra.Responses;
 using IPrint.Services;
 using PdfiumViewer;
-using System.Drawing;
 using System.Drawing.Printing;
-using Color = System.Drawing.Color;
 
 namespace IPrint
 {
@@ -112,7 +109,7 @@ namespace IPrint
                         }
 
                         byte[] pdfBytes = await DownloadPdf(entry.Url);
-						PrintPdf(pdfBytes, "", labelProfile.Configuration.Width, labelProfile.Configuration.Height, entry.Porait);
+						PrintPdf(pdfBytes, printerConfig.Name, labelProfile.Configuration.Width, labelProfile.Configuration.Height, entry.Porait);
 
 						// Si es exitoso, marcar como procesado
 						await printSpoolerService.UpdateStatusAsync(entry.Id, 1, entry.CompanyId);
@@ -137,59 +134,50 @@ namespace IPrint
 
         static void PrintPdf(byte[] pdfBytes, string printerName, double pageWidth, double pageHeight, bool rotate)
         {
-            PrintDocument printDoc = new PrintDocument();
+            PrintDocument printDocument = new PrintDocument();
+
             if (!string.IsNullOrEmpty(printerName))
             {
-                printDoc.PrinterSettings.PrinterName = printerName;
+                printDocument.PrinterSettings.PrinterName = printerName;
             }
 
-            int currentPage = 0, dpi = 300;
+            int currentPage = 0;
             using var pdfStream = new MemoryStream(pdfBytes);
-            using var pdfDocument = PdfDocument.Load(pdfStream);
+            using var pdfDocument = PdfiumViewer.PdfDocument.Load(pdfStream);
 
-            var pixelsWidth = (int)(pageWidth * dpi / 2.54f);
-            var pixelsHeight = (int)(pageHeight * dpi / 2.54f);
-
-            printDoc.PrintPage += (sender, e) =>
+            printDocument.PrintPage += (sender, e) =>
             {
-                e.PageSettings.Margins = new Margins(0, 0, 0, 0);
-
-                // Renderiza la página actual a una imagen
-                Bitmap bmp = RenderPdfPageToImage(pdfDocument, currentPage, pixelsWidth, pixelsHeight, dpi, rotate);
-
-                // Dibuja la imagen en el área de impresión
-                e.Graphics.DrawImage(bmp, 0, 0, pixelsWidth, pixelsHeight);
-
-                currentPage++;
-
-                // Verifica si hay más páginas
-                e.HasMorePages = currentPage < pdfDocument.PageCount;
-            };
-
-            printDoc.Print();
-        }
-
-        static Bitmap RenderPdfPageToImage(PdfDocument pdfDocument, int pageIndex, int pixelsWidth, int pixelsHeight, int dpi, bool rotate)
-        {
-            // Crea un bitmap con las dimensiones correctas
-            Bitmap bitmap = new Bitmap(pixelsWidth, pixelsHeight);
-            using (var graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.Clear(Color.White); // Fondo blanco
-
-                if (rotate)
+                if (currentPage >= pdfDocument.PageCount)
                 {
-                    graphics.RotateTransform(90);
+                    e.HasMorePages = false;
+                    return;
                 }
 
-                // Define un rectángulo para el área de renderizado
-                var renderArea = new Rectangle(0, 0, pixelsWidth, pixelsHeight);
+                // Obtener el tamaño de la hoja de la impresora
+                var printArea = e.PageBounds;
+                var pdfRotation = rotate ? PdfRotation.Rotate90 : PdfRotation.Rotate0;
 
-                // Renderizar la página dentro del área especificada
-                pdfDocument.Render(pageIndex, graphics, dpi, dpi, renderArea, PdfRenderFlags.ForPrinting);
-            }
+                int dpi = 300; // Puedes probar con 600 para aún mejor calidad
+                int pixelsWidth = (int)(printArea.Width * dpi / 100);
+                int pixelsHeight = (int)(printArea.Height * dpi / 100);
 
-            return bitmap;
+                // Renderizar la página PDF
+                using (var image = pdfDocument.Render(currentPage, pixelsWidth, pixelsHeight, dpi, dpi, pdfRotation, PdfRenderFlags.ForPrinting))
+                {
+                    e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                    e.Graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+
+                    // Dibujar la imagen en la hoja ajustando el tamaño
+                    e.Graphics.DrawImage(image, printArea);
+                }
+
+                currentPage++;
+                e.HasMorePages = (currentPage < pdfDocument.PageCount);
+            };
+
+            printDocument.Print();
         }
 
         LabelProfile? MatchLabelProfile(PrintSpooler printSpooler, List<LabelProfile> labelProfiles)
