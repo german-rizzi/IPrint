@@ -109,7 +109,7 @@ namespace IPrint
                         }
 
                         byte[] pdfBytes = await DownloadPdf(entry.Url);
-						PrintPdf(pdfBytes, printerConfig.Name, labelProfile.Configuration.Width, labelProfile.Configuration.Height, entry.Porait);
+						PrintPdf(pdfBytes, printerConfig.Name, labelProfile.Configuration.Width, labelProfile.Configuration.Height, labelProfile.Configuration.Portrait || entry.Porait);
 
 						// Si es exitoso, marcar como procesado
 						await printSpoolerService.UpdateStatusAsync(entry.Id, 1, entry.CompanyId);
